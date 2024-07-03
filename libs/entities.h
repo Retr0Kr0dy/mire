@@ -10,7 +10,7 @@ struct entity {
 struct entity entities_list[1024];
 int entities_count = 0;
 
-void addEntity(float posX, float posY, float velX, float velY, float gravity, float friciton) {
+void addEntity(float posX, float posY, float velX, float velY, float gravity, float friction) {
     struct entity ett;
 
     ett.posX = posX;
@@ -18,7 +18,7 @@ void addEntity(float posX, float posY, float velX, float velY, float gravity, fl
     ett.velX = velX;
     ett.velY = velY;
     ett.gravity = gravity;
-    ett.friction = gravity;
+    ett.friction = friction;
 
     entities_list[entities_count] = ett;
     entities_count++;

@@ -10,13 +10,23 @@
 #include "libs/graphics/basic_bitmap.h"
 #include "libs/logics/basic_collisions.h"
 
-int CHAR_SIZE = 16;
+int CHAR_SIZE = 8;
 int SCREEN_WIDTH = 1024;
 int SCREEN_HEIGHT = 960;
 int PIXEL_WIDTH = 256;
 int PIXEL_HEIGHT = 240;
+int PIXEL_MULTIPLIER = 4;
+
+char *FONT_1 = "assets/fonts/font_1.ttf";
+char *FONT_2 = "assets/fonts/font_2.ttf";
+char *FONT_3 = "assets/fonts/font_3.ttf";
 
 int main(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf ("Not possible : %s", argv[0]);
+    }
+
+
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return 1;
@@ -59,21 +69,9 @@ int main(int argc, char* argv[]) {
     // Seed the random number generator
     srand((unsigned int)time(NULL));
 
-    // Load font
-    TTF_Font *font = TTF_OpenFont("assets/fonts/font.ttf", CHAR_SIZE);  // Change the path to your font file
-    if (!font) {
-        printf("TTF_OpenFont failed: %s\n", TTF_GetError());
-        return 1;
-    }
-
-
-    // Create a pixel buffer
-    //unsigned int pixels[256 * 240];
-
     unsigned int* pixels = (unsigned int*)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(unsigned int));
     if (!pixels) {
         SDL_Log("Failed to allocate memory for pixel buffer");
-        TTF_CloseFont(font);
         TTF_Quit();
         SDL_Quit();
         return 1;
@@ -82,18 +80,19 @@ int main(int argc, char* argv[]) {
 
     memset(pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(unsigned int));
 
-
-    SDL_Color white = {255, 255, 255, 255};
-
     // Main loop
     int running = 1;
     int mir = 1;
+    int debug = 0;
+
+    int selector = 0;
 
     SDL_Event event;
     Uint32 startTime = SDL_GetTicks();
     float fps = 0;
     int frameCount = 0;
     char debugText[32];
+    int runLevel = 0; // runlevel 0 is main menu
 
     while (running) {
         while (SDL_PollEvent(&event) != 0) {
@@ -108,27 +107,51 @@ int main(int argc, char* argv[]) {
                     case SDLK_a:
                         mir ^= 1;
                         break;
+                    case SDLK_F1:
+                        debug ^= 1;
+                        break;
+                    if (runLevel == 0) { // Inside main menu
+                        case SDLK_UP:
+                            selector = (selector - 1 + 3) % 3;
+                            break;
+                        case SDLK_DOWN:
+                            selector = (selector + 1) % 3;
+                            break;
+                        case SDLK_RETURN:
+                            switch (selector) {
+                            case 0:
+                                break;
+                            case 1:
+                                break;
+                            case 2:
+                                running = 0;
+                                break;
+                            }
+                            
+                            break;
+                    }
                 }
             }
         }
 
         if (mir) { drawMir(pixels); }
 
+        drawMainMenu(pixels, selector);
 
+        if (debug) {
+            // Calculate FPS
+            frameCount++;
+            Uint32 elapsedTime = SDL_GetTicks() - startTime;
+            if (elapsedTime >= 1000) {
+                fps = frameCount / (elapsedTime / 1000.0f);
+                startTime = SDL_GetTicks();
+                frameCount = 0;
+            }
 
-        // Calculate FPS
-        frameCount++;
-        Uint32 elapsedTime = SDL_GetTicks() - startTime;
-        if (elapsedTime >= 1000) {
-            fps = frameCount / (elapsedTime / 1000.0f);
-            startTime = SDL_GetTicks();
-            frameCount = 0;
+            snprintf(debugText, sizeof(debugText), "FPS: %.2f", fps);
+
+            renderText(debugText, 16, FONT_1, green, 1, 1, pixels, PIXEL_WIDTH, PIXEL_HEIGHT);
         }
-
-        snprintf(debugText, sizeof(debugText), "FPS: %.2f", fps);
-
-        renderText(debugText, font, white, 4, 4, pixels, PIXEL_WIDTH, PIXEL_HEIGHT);
-
 
 
         // Update the texture with the new pixel buffer
@@ -167,7 +190,6 @@ int main(int argc, char* argv[]) {
     }
 
     // Cleanup
-    TTF_CloseFont(font);
     TTF_Quit();
     glDeleteTextures(1, &texture);
     SDL_GL_DeleteContext(glContext);
