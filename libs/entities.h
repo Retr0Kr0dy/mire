@@ -1,4 +1,9 @@
+
+
 struct entity {
+    int sizeX;
+    int sizeY;
+    unsigned int* texture;
     float posX;
     float posY;
     float velX;

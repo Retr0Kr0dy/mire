@@ -118,13 +118,6 @@ void renderText(const char* text, int CHAR_SIZE , char *font_name, SDL_Color col
     TTF_CloseFont(font);
 }
 
-
-//void drawMenu(char* menuName, char** menuItem, unsigned int* pixels, int screenWidth, int screenHeight) {
-
-
-
-
-
 // Function to draw a pixel in the pixels array
 void drawPixel(int x, int y, Uint32 color, unsigned int* pixels, int screenWidth, int screenHeight) {
     if (x >= 0 && x < screenWidth && y >= 0 && y < screenHeight) {
@@ -151,7 +144,6 @@ void drawFilledRect(int x, int y, int width, int height, Uint32 color, unsigned 
         }
     }
 }
-
 
 // Function to draw the border of a circle (outline)
 void drawCircleBorder(int centerX, int centerY, int radius, Uint32 color, unsigned int* pixels, int screenWidth, int screenHeight) {
@@ -201,8 +193,6 @@ void drawRoundedRect(int x, int y, int width, int height, int cornerRadius, Uint
 
     drawFilledRect(x + cornerRadius, y + PIXEL_MULTIPLIER + 2 , width - 2 * cornerRadius, height - 3 * PIXEL_MULTIPLIER, color, pixels, screenWidth, screenHeight);
     drawFilledRect(x + PIXEL_MULTIPLIER + 2 , y + cornerRadius, width - 3 * PIXEL_MULTIPLIER, height - 2 * cornerRadius, color, pixels, screenWidth, screenHeight);
-
-
 }
 
 // Main function to draw the menu
@@ -215,8 +205,6 @@ void drawMenu(char* menuName, char* menuDesc, char** menuItem, int menuSize, uns
     int menuY = (screenHeight - menuHeight) / 2;
     Uint32 menuColor = 0xFFC0C0C0; // ARGB color for the menu background
 
-
-
     // Draw the rounded rectangle for the menu background
     drawRoundedRect(menuX, menuY, menuWidth, menuHeight, cornerRadius, menuColor, pixels, screenWidth, screenHeight);
 
@@ -224,7 +212,7 @@ void drawMenu(char* menuName, char* menuDesc, char** menuItem, int menuSize, uns
     renderText(menuName, CHAR_SIZE * 3, FONT_3, black, -1, menuY + (CHAR_SIZE / 2) + 8, pixels, PIXEL_WIDTH, PIXEL_HEIGHT);
     renderText(menuDesc, CHAR_SIZE, FONT_3, black, -1, menuY + (CHAR_SIZE*4) + (CHAR_SIZE / 2), pixels, PIXEL_WIDTH, PIXEL_HEIGHT);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 5; i++) {
         if (i > menuSize - 1) { 
             return; 
         }
@@ -235,7 +223,7 @@ void drawMenu(char* menuName, char* menuDesc, char** menuItem, int menuSize, uns
         }
         char *elem = menuItem[i];
         if (elem == NULL) {
-            elem = "";
+            return;
         }
 
         renderText(elem, CHAR_SIZE*2, FONT_3, color, menuX + CHAR_SIZE*2, menuY + ((CHAR_SIZE*2)*4) + ((CHAR_SIZE*2)*(i*2)), pixels, PIXEL_WIDTH, PIXEL_HEIGHT);
@@ -248,9 +236,90 @@ void drawMenu(char* menuName, char* menuDesc, char** menuItem, int menuSize, uns
 void drawMainMenu(unsigned int* pixels, int selector) {
     char *mainMenuName = "mire";
     char *mainMenuDesc = "Analog horror spaghetti shit ?";
-    char *mainMenuItem[3] = {"Start game", "Settings", "Quit"};
+    char *mainMenuItem[7] = {"Start game", "Settings", "Quit"};
     int mainMenySize = sizeof(mainMenuItem)/sizeof(mainMenuItem[0]);
 
 
     drawMenu(mainMenuName, mainMenuDesc ,mainMenuItem, mainMenySize, pixels, PIXEL_WIDTH, PIXEL_HEIGHT, selector);
+}
+
+
+void drawBitmap(unsigned int* pixels, unsigned int* bitmap, int sizeX, int sizeY, int posX, int posY) {
+ // Iterate over each pixel in the text surface and modify the corresponding pixel in the output array
+    for (int j = 0; j < sizeY; ++j) {
+        for (int i = 0; i < sizeX; ++i) {
+            int srcIndex = j * sizeX + i;
+            int dstIndex = (posX + j) * SCREEN_WIDTH/4 + (posY + i);
+
+            if (posX + i < 0 || posX + i >= SCREEN_WIDTH/4 || posY + j < 0 || posY + j >= SCREEN_WIDTH/4) {
+                continue; // Skip pixels that are out of bounds
+            }
+
+            Uint32 pixel = bitmap[srcIndex];
+            Uint8 alpha = pixel >> 24; // Extract the alpha value
+
+            if (alpha > 0) { // Only blend if the pixel is not fully transparent
+                Uint8 srcR = (pixel >> 16) & 0xFF;
+                Uint8 srcG = (pixel >> 8) & 0xFF;
+                Uint8 srcB = pixel & 0xFF;
+
+                Uint32 dstPixel = pixels[dstIndex];
+                Uint8 dstR = (dstPixel >> 16) & 0xFF;
+                Uint8 dstG = (dstPixel >> 8) & 0xFF;
+                Uint8 dstB = dstPixel & 0xFF;
+                Uint8 dstA = (dstPixel >> 24) & 0xFF;
+
+                Uint8 outR = (srcR * alpha + dstR * (255 - alpha)) / 255;
+                Uint8 outG = (srcG * alpha + dstG * (255 - alpha)) / 255;
+                Uint8 outB = (srcB * alpha + dstB * (255 - alpha)) / 255;
+                Uint8 outA = alpha + (dstA * (255 - alpha)) / 255;
+
+                pixels[dstIndex] = (outA << 24) | (outR << 16) | (outG << 8) | outB;
+            }
+        }
+    }
+ }
+
+
+
+
+
+
+
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+// Function to convert RGB components to 0xAARRGGBB format
+uint32_t rgb_to_argb(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    return (a << 24) | (r << 16) | (g << 8) | b;
+}
+
+// Function to load a PNG file and return an array of pixels in 0xAARRGGBB format
+uint32_t* load_png_to_argb(const char* filepath, int* width, int* height) {
+    int n;
+    uint8_t* data = stbi_load(filepath, width, height, &n, 4); // Force 4 components per pixel (RGBA)
+    if (!data) {
+        printf("Failed to load image: %s\n", filepath);
+        return NULL;
+    }
+
+    int total_pixels = (*width) * (*height);
+    uint32_t* pixel_array = (uint32_t*)malloc(total_pixels * sizeof(uint32_t));
+    if (!pixel_array) {
+        printf("Failed to allocate memory for pixel array\n");
+        stbi_image_free(data);
+        return NULL;
+    }
+
+    for (int i = 0; i < total_pixels; ++i) {
+        uint8_t r = data[i * 4 + 0];
+        uint8_t g = data[i * 4 + 1];
+        uint8_t b = data[i * 4 + 2];
+        uint8_t a = data[i * 4 + 3];
+        pixel_array[i] = rgb_to_argb(r, g, b, a);
+    }
+
+    stbi_image_free(data);
+    return pixel_array;
 }

@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "assets/bitmaps/entities/main_character.h"
+
 #include "libs/entities.h"
 #include "libs/graphics/basic_bitmap.h"
 #include "libs/logics/basic_collisions.h"
@@ -94,6 +96,12 @@ int main(int argc, char* argv[]) {
     char debugText[32];
     int runLevel = 0; // runlevel 0 is main menu
 
+
+    const char* filepath = "assets/bitmaps/entities/PNG/main_cahr.png"; // Replace with your PNG file path
+    int width, height;
+    uint32_t* character = load_png_to_argb(filepath, &width, &height);
+
+
     while (running) {
         while (SDL_PollEvent(&event) != 0) {
             if (event.type == SDL_QUIT) {
@@ -137,6 +145,11 @@ int main(int argc, char* argv[]) {
         if (mir) { drawMir(pixels); }
 
         drawMainMenu(pixels, selector);
+
+
+
+        drawBitmap(pixels, character, sizeX, sizeY, 10, 10);
+
 
         if (debug) {
             // Calculate FPS
