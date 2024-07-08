@@ -6,9 +6,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "assets/bitmaps/entities/main_character.h"
-
 #include "libs/entities.h"
+#include "libs/levels.h"
 #include "libs/graphics/basic_bitmap.h"
 #include "libs/logics/basic_collisions.h"
 
@@ -96,11 +95,14 @@ int main(int argc, char* argv[]) {
     char debugText[32];
     int runLevel = 0; // runlevel 0 is main menu
 
+    int levelLoaded = 0;
+    struct level Current;
+    struct entity Character;
 
-    const char* filepath = "assets/bitmaps/entities/PNG/main_cahr.png"; // Replace with your PNG file path
-    int width, height;
-    uint32_t* character = load_png_to_argb(filepath, &width, &height);
-
+    int RIGHT = 0;
+    int LEFT = 0;
+    int UP = 0;
+    int DOWN = 0;
 
     while (running) {
         while (SDL_PollEvent(&event) != 0) {
@@ -112,22 +114,29 @@ int main(int argc, char* argv[]) {
                     case SDLK_q:
                         running = 0;
                         break;
-                    case SDLK_a:
-                        mir ^= 1;
-                        break;
                     case SDLK_F1:
                         debug ^= 1;
                         break;
+                    case SDLK_LEFT:
+                        LEFT = 1;
+                        break;
+                    case SDLK_RIGHT:
+                        RIGHT = 1;
+                        break;
+                    case SDLK_UP:
+                        UP = 1;
+                        break;
+                    case SDLK_DOWN:
+                        DOWN = 1;
+                        break;
                     if (runLevel == 0) { // Inside main menu
-                        case SDLK_UP:
-                            selector = (selector - 1 + 3) % 3;
-                            break;
-                        case SDLK_DOWN:
-                            selector = (selector + 1) % 3;
+                        case SDLK_a:
+                            mir ^= 1;
                             break;
                         case SDLK_RETURN:
                             switch (selector) {
                             case 0:
+                                runLevel = 1; // test_room
                                 break;
                             case 1:
                                 break;
@@ -137,19 +146,48 @@ int main(int argc, char* argv[]) {
                             }
                             
                             break;
+                    } else if (runLevel > 0) {
                     }
                 }
             }
         }
 
-        if (mir) { drawMir(pixels); }
 
-        drawMainMenu(pixels, selector);
+        if (runLevel == 0) {
+            if (UP) {selector = (selector - 1 + 3) % 3;}
+            if (DOWN) {selector = (selector + 1) % 3;}
+
+            if (mir) { drawMir(pixels); }
+            drawMainMenu(pixels, selector);
+        }
+        else {
+            if (!levelLoaded) {
+                Current = loadLevel(runLevel);
+                Character = Current.Entities[0];
+
+                levelLoaded = 1;
+            }
+            
+            if (LEFT) {Character.posY -= 1;}
+            if (RIGHT) {Character.posY += 1;}
+            if (UP) {Character.posX -= 1;}
+            if (DOWN) {Character.posX += 1;}
+
+            handleEntityLogic(&Character);
+
+
+            drawBitmap(pixels, Current.background, 256, 240, 0, 0);
+
+            drawBitmap(pixels, Character.texture, 16, 16, Character.posX, Character.posY );
+
+        }
 
 
 
-        drawBitmap(pixels, character, sizeX, sizeY, 10, 10);
-
+        LEFT = 0;
+        RIGHT = 0;
+        UP = 0;
+        DOWN = 0;
 
         if (debug) {
             // Calculate FPS

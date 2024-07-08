@@ -1,5 +1,3 @@
-
-
 struct entity {
     int sizeX;
     int sizeY;
